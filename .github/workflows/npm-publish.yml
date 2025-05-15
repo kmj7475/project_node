@@ -44,7 +44,7 @@ jobs:
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd ~/project
             git pull origin main
-            npm install --prefix backapp
-            pm2 restart backapp || pm2 start backapp/index.js --name "backapp"
+            npm install --prefix backend
+            pm2 restart app || pm2 start backend/index.js --name "app"
             pm2 save
           EOF
