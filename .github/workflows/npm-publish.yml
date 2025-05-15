@@ -18,19 +18,19 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Install frontend dependencies
-      working-directory: frontend
+    - name: Install frontapp dependencies
+      working-directory: ../frontapp
       run: npm ci
 
     - name: Build Vue app
-      working-directory: frontend
+      working-directory: ../frontapp
       run: npm run build
 
 #    - name: Copy dist to backend/public
 #      run: |
 #        rm -rf backend/public
 #        mkdir -p backend/public
-#        cp -r frontend/dist/* backend/public/
+#        cp -r frontapp/dist/* backend/public/
 
     - name: SSH into server and deploy
       uses: appleboy/ssh-action@v1.0.3
