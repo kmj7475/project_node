@@ -3,10 +3,12 @@ const app = express()
 const port = 3000
 
 app.get('/', (req, res) => {
+  console.log("index request")
   res.send('index')
 })
 
 app.get('/hello', (req, res) => {
+  console.log(req.url)
   res.send('Hello World!')
 })
 
