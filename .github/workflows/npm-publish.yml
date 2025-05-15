@@ -19,11 +19,11 @@ jobs:
         node-version: '20'
 
     - name: Install frontapp dependencies
-      working-directory: ../frontapp
+      working-directory: frontapp
       run: npm ci
 
     - name: Build Vue app
-      working-directory: ../frontapp
+      working-directory: frontapp
       run: npm run build
 
 #    - name: Copy dist to backend/public
