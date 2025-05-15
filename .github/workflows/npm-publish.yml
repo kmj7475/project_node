@@ -1,0 +1,46 @@
+name: Build Vue and Deploy Node App
+
+on:
+  push:
+    branches:
+      - main 
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build Vue app
+      working-directory: ./frontend
+      run: npm run build
+
+#    - name: Copy dist to backend/public
+#      run: |
+#        rm -rf backend/public
+#        mkdir -p backend/public
+#        cp -r frontend/dist/* backend/public/
+
+    - name: SSH into server and deploy
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SSH_HOST }}
+        username: ${{ secrets.SSH_USER }}
+        key: ${{ secrets.SSH_KEY }}
+        script: |
+          cd /home/ubuntu/project
+          git pull origin main
+          npm install --prefix backend
+          pm2 restart app || pm2 start backend/app.js --name "app"
+          pm2 save
