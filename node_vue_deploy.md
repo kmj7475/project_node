@@ -2,27 +2,161 @@ https://velog.io/@new_wisdom/AWS-EC2%EC%97%90-Node.jsExpress-pm2-nginx-배포하
 
 54.180.202.222
 
+## vue + node 배포
+
 ### 학습목표
 
 프로젝트 빌드 후 운영모드(production)로 각각의 포트로 인스턴스를 생성하여 nginx 80 포트로 인스턴스들을 로드 밸런싱
 
-### 설치순서
+### 작업순서
 
 <img src="./images/배포구조.png" width="300px">
 
-1. vue 빌드하여 배포 : vue와 node 연동하기
-2. node : 클라우드 서버에 Node.js 배포 및 실행
-3. pm2 : 프로세스 매니저로 node 서버가 갑자기 꺼져버려도 자동으로 재구동
-4. enginx : 프록시 서버 역할
+1. Vue 프론트엔드 빌드
+2. vue와 node 연동하기(Vue 정적파일 서빙 + API 연결)
+3. Naver Cloud 서버 준비 (Ubuntu 가상 서버)
+4. 서버에 파일 업로드 (Vue 빌드 + Node 서버)
+5. 서버에 node 설치. (&, nohup)
+6. PM2로 Node 서버 실행(클러스터 무중단 서비스)
+7. Nginx로 프록시 설정
+8. (선택) 도메인 연결 및 HTTPS 설정 (Let's Encrypt)
+9. github action
 
-### vue와 node 연동하기
+### 1. Vue 프론트엔드 빌드
 
-1. Vue를 node에 배포
-   node express를 실행했을 때 Vue로 만든 웹프론트도 함께 실행되도록 함.
+node express를 실행했을 때 Vue로 만든 웹프론트도 함께 실행되도록 함.
 
-2. node의 router와 vue의 router를 연결
+#### frontend/vue.config.js 파일 수정
 
-### node 실행
+```javascript
+const { defineConfig } = require("@vue/cli-service");
+const path = require("path");
+
+const server = "http://localhost:3000";
+
+module.exports = defineConfig({
+  transpileDependencies: true,
+  outputDir: path.resolve("../backend/public"),
+  // 개발용 임시 서버
+  devServer: {
+    // Vue.js 실행 시 적용 PORT 변경
+    port: 8099,
+    // CORS(Cross Origin Resource Sharing) => proxy setting
+    proxy: {
+      // 해당 문자열로 시작하는 통신에 적용하는 설정
+      "^/api": {
+        // 변경할 Origin
+        target: server,
+        // Origin 변경 : http://localhost:8099 -> http://localhost:3000
+        changeOrigin: true,
+        // URL 중 일부분을 다시 작성 : /api/books -> /books
+        pathRewrite: { "^/api": "/" },
+        // websocket 설정 비활성화
+        ws: false,
+      },
+    },
+  },
+});
+```
+
+배포할 위치 설정
+
+```javascript
+outputDir: path.resolve("../backend/public"),
+```
+
+vue build
+
+```sh
+$ npm run build
+```
+
+build 후 생성된 배포 파일  
+<img src="./images/배포파일.png" width="300px">
+
+### 2. vue와 node 연동하기
+
+Node만을 실행했을 때 Vue도 함께 실행되므로 Vue에서 만든 front에 접근하기 위해선 접근할 url을 지정.
+
+#### backend/app.js 수정
+
+```javascript
+const express = require("express");
+const path = require("path");
+const app = express();
+const port = 3000;
+
+app.get("/hello", (req, res) => {
+  console.log(req.url);
+  res.send("Hello World!");
+});
+
+app.get("/api/board", (req, res) => {
+  res.send({ title: "Hello World!" });
+});
+
+//node의 router와 vue의 router를 연결
+app.get("/", function (req, res, next) {
+  res.sendFile(path.join(__dirname, "./public", "index.html"));
+});
+
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, "./public", "index.html"));
+});
+
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
+```
+
+'/' endpoint에 vue의 index.html을 라우팅함.
+
+```javascript
+const path = require("path");
+
+app.get("/", function (req, res, next) {
+  res.sendFile(path.join(__dirname, "./public", "index.html"));
+});
+```
+
+새로고침해도 동작하도록 404 error 처리 미들웨어 추가
+
+```javascript
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, "./public", "index.html"));
+});
+```
+
+#### 테스트
+
+브라우저에서 테스트. node만 실행해도 vue도 같이 동작됨. 3000포트로 테스트
+
+```
+http://localhost:3000
+```
+
+### 3. Naver Cloud 서버 준비 (Ubuntu 가상 서버)
+
+네이버 서버 구축 : https://devmg.tistory.com/346
+
+### 4. 서버에 소스 내려받기
+
+```sh
+# git clone
+git clone https://github.com/cyannara/project.git
+
+# 노드 서버 패키지 설치
+cd project/backend
+npm install
+
+```
+
+.env 파일 전송
+
+### 5. 서버에 node 설치
+
+nvm을 이용하여 node 설치  
+nvm(node version manager) : 여러 개의 노드 버전을 사용할 수 있는 도구
 
 ```sh
 # 패키지 업데이트
@@ -31,27 +165,47 @@ sudo apt-get update
 # nvm 설치
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
 
-# 로그아웃하고 다시 로그인
-
 # nvm 설치 확인
 nvm --verion
 
 # nvm 명령어로 node와 npm을 설치
 nvm install 22.14.0
+```
 
-# git clone
-git clone https://github.com/cyannara/project.git
+(선택) node 버전을 변경하려면
 
-# 노드 서버 패키지 설치
-cd project/backend
-npm i
+```sh
+# 사용가능한 노드 버전 조회
+$ nvm list available
 
-# 서버 실행
+# 사용할 버전의 노드 설치
+$ nvm install 10.16.3
 
-node backend/app.js
-node backend/app.js &
-node app.js > /dev/null 2>&1 &
-node app.js > ~/server.log 2>&1 &
+# 원하는 노드 버전 지정
+$ nvm use 22.14.0
+
+# 설치되어 사용가능한 node 버전 조회
+$ nvm list
+       v10.16.3
+->     v22.14.0
+
+# 설치된 node 버전 확인
+node -v
+
+# 로그아웃 후 다시 로그인 하면 node 버전이 이전상태로 돌아가 있음
+
+# node 기본 버전 변경
+$ nvm alias default v22.14.0
+
+```
+
+서버 실행
+
+```sh
+$ node backend/app.js
+$ node backend/app.js &
+$ node app.js > /dev/null 2>&1 &
+$ node app.js > ~/server.log 2>&1 &
 ```
 
 브라우저로 서버 연결 확인
@@ -60,7 +214,7 @@ node app.js > ~/server.log 2>&1 &
 http://54.180.202.222:3000
 ```
 
-### 백그라운드 실행
+## 백그라운드 실행
 
 로그인한 세션에서 계속 입력을 하기 위해 프로세스를 백그라운드로 실행  
 `포그라운드`로 실행할 경우 터미널을 통해 다른 일을 할 수 없음.
@@ -92,18 +246,20 @@ $ bg
 $ exit
 ```
 
-### nohup
+## nohup
 
-현재 사용자 세션이 아닌 운영체제가 제공하는 백그라운드 공간에서 실행한다. 사용자의 세션이 종료되어도 지금 실행시킨 프로세스는 종료되지 않는다.
-&는 로그아웃하거나 ssh 세션, stty 가 끊어지면 그 명령도 종료됨.  
-hang up: 데몬처럼 부모프로세스 종료 시 자식 프로세스에게 `hub` 신호를 전달하지 않게 하여 부모프로세스(터미널)이 종료된다 하더라도 자식 프로세스가 종료되지 않게 할 수 있다.
-nohup 에 별도 리다이렉션이 없으면 표준출력과 표준에러는 nohup.out 이란 파일에 기록함.
+- 현재 사용자 세션이 아닌 **운영체제가 제공하는 백그라운드 공간에서 실행**하므로 사용자의 세션이 종료되어도 지금 실행시킨 프로세스는 종료되지 않는다.
+- &는 로그아웃하거나 ssh 세션, stty 가 끊어지면 그 명령도 종료됨.
+- 데몬처럼 부모프로세스 종료 시 자식 프로세스에게 신호를 전달하지 않게 하여 부모프로세스(터미널)가 종료되더라도 자식 프로세스가 종료되지 않게 할 수 있음.
+- nohup 에 별도 리다이렉션이 없으면 표준출력과 표준에러는 nohup.out 이란 파일에 기록함.
+
+사용자의 세션이 종료되어도 유지되는 프로세스를 백그라운드로 실행
 
 ```sh
-$ nohup node app.js > server.log 2>&1 &  # 사용자의 세션이 종료되어도 유지되는 프로세스를 백그라운드로 실행한다.
+$ nohup node app.js > server.log 2>&1 &
 ```
 
-### 프로세스 종료
+프로세스 종료
 
 ```sh
 ## 실행중인 프로세스 상태 표시 e: Every  f: Full format
@@ -115,7 +271,7 @@ $ ps -ef | grep node
 $ kill -9 27367
 ```
 
-### pm2
+### 6. PM2로 Node 서버 실행
 
 클러스터 모드: Node.js 부하 분산 및 제로 다운타임 리로드  
 https://inpa.tistory.com/entry/node-%F0%9F%93%9A-PM2-모듈-사용법-클러스터-무중단-서비스  
@@ -194,35 +350,156 @@ reload는 최소한 1개 이상의 프로세스를 유지하며 하나씩 재시
 
 1024 이하의 포트를 사용하려면 관리자 권한이 필요하므로 sudo 를 붙여서 실행하면 됨.
 
-### nginx 설치
+### 7. Nginx로 프록시 설정
 
-### nvm 으로 노드 설치하기
+80/443 포트 진입점, Node로 트래픽 전달
 
-nvm(node version manager) : 여러 개의 노드 버전을 사용할 수 있는 도구
+Nginx 설치
 
 ```sh
-# 사용가능한 노드 버전 조회
-$ nvm list available
+$ sudo apt update
+$ sudo apt install nginx
+$ nginx -v
+```
 
-# 사용할 버전의 노드 설치
-$ nvm install 10.16.3
+Nginx 구동
 
-# 원하는 노드 버전 지정
-$ nvm use 22.14.0
+```sh
+$ sudo systemctl start nginx        # sudo service nginx start
+```
 
-# 설치되어 사용가능한 node 버전 조회
-$ nvm list
-       v10.16.3
-->     v22.14.0
+Nginx proxy 서버 설정
 
-# 설치된 node 버전 확인
-node -v
+```sh
+$ sudo vi /etc/nginx/sites-availabled/default
+```
 
-# 로그아웃 후 다시 로그인 하면 node 버전이 이전상태로 돌아가 있음
-# node 기본 버전 변경
-$ nvm alias default v22.14.0
+```shell
+server {
+        listen 80;
+        listen [::]:80;
+
+        access_log /var/log/nginx/reverse-access.log;
+        error_log /var/log/nginx/reverse-error.log;
+
+        location / {
+                    proxy_pass http://127.0.0.1:3000;
+  }
+}
+```
+
+Nginx 서버 재시작
+
+```sh
+$ sudo systemctl restart nginx     # sudo service nginx restart
+$ sudo systemctl status nginx
+```
+
+브라우저 테스트
 
 ```
+http://서버ip:80
+```
+
+### 9. github action
+
+- CI/CD를 위한 github 서비스. github에 push 하면 NCP 서버에 자동 배포되도록 설정
+- workflow라고도 함. 트리거 이벤트가 발생하면 시작되는 일련의 동작이며 yaml 파일로 저장
+- workflow는 job들로 나눠지며 각 job은 일련의 스텝을 수행
+
+<img src="./images/github_action.png" width="800">
+
+로컬에서 ssh 키생성
+
+```sh
+# 키생성
+C:\Users\user> ssh-keygen -t rsa -b 4096 -C "github-action"
+
+C:\Users\user> cd .ssh
+C:\Users\user\.ssh> dir
+
+ Directory of C:\Users\user\.ssh
+
+2025-05-16  오전 07:54             3,381 id_rsa
+2025-05-16  오전 07:54               740 id_rsa.pub
+
+# 메모장에서 공캐기 파일 내용 복사
+C:\Users\user\.ssh>notepad id_rsa.pub
+```
+
+서버에 공개키 등록
+
+```sh
+ssh ubuntu@your-server-ip
+mkdir -p ~/.ssh
+sudo nano ~/.ssh/authorized_keys
+# id_rsa.pub 내용을 추가로 붙여넣기
+```
+
+GitHub에 Secrets 등록
+GitHub → Settings → Secrets → Actions
+
+```
+키 이름	  설명
+SSH_HOST	서버 주소 또는 IP
+SSH_USER	보통 ubuntu
+SSH_KEY  	SSH 개인키 (id_rsa) 내용
+```
+
+GitHub Actions 워크플로우 설정
+
+.github/workflows/deploy.yml 생성:
+
+```yaml
+name: Build Vue and Deploy Node App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Vue app
+        working-directory: ./frontend
+        run: npm run build
+
+      #    - name: Copy dist to backend/public
+      #      run: |
+      #        rm -rf backend/public
+      #        mkdir -p backend/public
+      #        cp -r frontend/dist/* backend/public/
+
+      - name: SSH into server and deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /home/ubuntu/project
+            git pull origin main
+            npm install --prefix backend
+            pm2 restart app || pm2 start backend/app.js --name "app"
+            pm2 save
+```
+
+## 리눅스 명령어
 
 ### 이전 명령어 실행 방법
 
