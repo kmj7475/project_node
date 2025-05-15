@@ -1,0 +1,2 @@
+"use strict";(self["webpackChunkfrontapp"]=self["webpackChunkfrontapp"]||[]).push([[594],{5178:function(t,n,a){a.r(n),a.d(n,{default:function(){return i}});var r=a(6768),e=a(4232);const u={class:"about"};function o(t,n,a,o,s,c){return(0,r.uX)(),(0,r.CE)("div",u,[n[0]||(n[0]=(0,r.Lk)("h1",null,"This is an about page",-1)),(0,r.Lk)("div",null,(0,e.v_)(s.board.title),1)])}var s={data(){return{board:{}}},created(){fetch("/api/board").then((t=>t.json())).then((t=>this.board=t))}},c=a(1241);const d=(0,c.A)(s,[["render",o]]);var i=d}}]);
+//# sourceMappingURL=about.cf2d6562.js.map
