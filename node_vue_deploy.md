@@ -166,7 +166,7 @@ sudo apt-get update
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
 
 # nvm 설치 확인
-nvm --verion
+nvm --version
 
 # nvm 명령어로 node와 npm을 설치
 nvm install 22.14.0
@@ -377,7 +377,7 @@ $ sudo vi /etc/nginx/sites-availabled/default
 ```shell
 server {
         listen 80;
-        listen [::]:80;
+ #       listen [::]:80;
 
         access_log /var/log/nginx/reverse-access.log;
         error_log /var/log/nginx/reverse-error.log;
