@@ -31,13 +31,24 @@ app.get('/pdf1', async (req,res)=>{
   await page.goto('https://example.com', { waitUntil: 'networkidle0' });
 
   // PDF 저장
-  await page.pdf({
-    path: 'output.pdf',         // 저장될 파일명
-    format: 'A4',               // 종이 크기
-    printBackground: true       // 배경 포함
+  // await page.pdf({
+  //   path: 'output.pdf',         // 저장될 파일명
+  //   format: 'A4',               // 종이 크기
+  //   printBackground: true       // 배경 포함
+  // });
+  // Downlaod the PDF
+  const pdf = await page.pdf({
+  //  path: 'result.pdf',
+    margin: { top: '100px', right: '50px', bottom: '100px', left: '50px' },
+    printBackground: true,
+    format: 'A4',
   });
-
   await browser.close();
+  res.set({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `attachment; filename=data.pdf`,
+  });
+  res.send(pdf);
 });
 
 app.get('/pdf2', async (req,res)=>{
