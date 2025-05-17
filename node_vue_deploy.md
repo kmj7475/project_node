@@ -522,3 +522,17 @@ $ vi /etc/profile
 # History Command Execute Time
 export HISTTIMEFORMAT="%F %T "
 ```
+
+### 히어 도큐먼트(Here-Document)
+히어 도큐먼트는 입력 받은 내용을 임시 파일로 생성해서 명령어에 전달한다.
+```sh
+$ 명령어 << <끝구분자>
+> 내용
+> <끝구분자>
+```
+```sh
+cat << END  > result.txt
+hello
+bye
+END
+```
