@@ -44,14 +44,4 @@ jobs:
     - name: SSH into server and deploy
       run: |
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no   \
-              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}<< '          EOF'
-            cd ~/project
-            git pull origin main
-            cd backend
-            source ~/.bashrc
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            npm ci
-            pm2 restart app || pm2 start app1.js --name app
-            pm2 save
-          EOF
+              ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}  sh ~/start.sh
