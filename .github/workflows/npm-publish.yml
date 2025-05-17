@@ -53,6 +53,14 @@ jobs:
     - name: SSH into server and deploy
       run: |
         scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/project/backend/public/
-        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash ~/start.sh"
-        echo 'end'
+        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/project
+            git pull origin main
+            cd backend
+            npm ci
+            pm2 restart app || pm2 start app.js --name "app"
+            pm2 save
+          EOF
+
+        echo '== build end ==='
         
