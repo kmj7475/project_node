@@ -371,7 +371,7 @@ $ sudo systemctl start nginx        # sudo service nginx start
 Nginx proxy 서버 설정
 
 ```sh
-$ sudo vi /etc/nginx/sites-availabled/default
+$ sudo vi /etc/nginx/sites-available/default
 ```
 
 ```shell
@@ -453,52 +453,93 @@ GitHub Actions 워크플로우 설정
 ```yaml
 name: Build Vue and Deploy Node App
 
+#on:
+#  push:
+#    branches:
+#      - main 
+
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
-
+  push:
+    branches:
+      - main 
+          
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
 
-      - name: Install frontend dependencies
-        working-directory: ./frontend
-        run: npm ci
+    - name: Install frontapp dependencies
+      working-directory: frontapp
+      run: npm ci
 
-      - name: Build Vue app
-        working-directory: ./frontend
-        run: npm run build
+    - name: Build Vue app
+      working-directory: frontapp
+      run: |
+        npm ci
+        npm run build
 
-      #    - name: Copy dist to backend/public
-      #      run: |
-      #        rm -rf backend/public
-      #        mkdir -p backend/public
-      #        cp -r frontend/dist/* backend/public/
+#    - name: Copy dist to backend/public
+#      run: |
+#        rm -rf backend/public
+#        mkdir -p backend/public
+#        cp -r frontapp/dist/* backend/public/
 
-      - name: SSH into server and deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /home/ubuntu/project
+    - name: Setup SSH key
+      run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+    # 서버에 접속하여 배포 실행          
+    - name: SSH into server and deploy
+      run: |
+        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/project/backend/public/
+        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/project
             git pull origin main
-            npm install --prefix backend
-            pm2 restart app || pm2 start backend/app.js --name "app"
+            cd backend
+            npm ci
+            pm2 restart app || pm2 start app.js --name "app"
             pm2 save
+          EOF
+
+        echo '== build end ==='
+```
+쉘 스크립트 작성
+
+```sh
+ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}  "bash ~/start1.sh"
 ```
 
+```sh
+$ cat start.sh
+            cd ~/project
+            git pull origin main
+            cd backend
+            npm ci
+            pm2 restart app || pm2 start app1.js --name app
+            pm2 save
+
+```
+
+nvm으로 설치된 node 를 commend not found 에러가 나는 경우 nvm 패스 추가  
+
+```sh
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+```            
 ## 리눅스 명령어
 
 ### 이전 명령어 실행 방법
