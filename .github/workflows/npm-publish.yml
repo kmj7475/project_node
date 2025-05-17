@@ -51,3 +51,5 @@ jobs:
       run: |
         scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/project/backend/public/
         ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash ~/start.sh"
+        echo 'end'
+        
