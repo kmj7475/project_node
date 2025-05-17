@@ -43,6 +43,6 @@ jobs:
     # 서버에 접속하여 배포 실행          
     - name: SSH into server and deploy
       run: |
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << '        EOF'
-        sh ~/start1.sh
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+        echo aaa
         EOF
