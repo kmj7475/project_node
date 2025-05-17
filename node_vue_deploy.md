@@ -401,54 +401,29 @@ $ sudo systemctl status nginx
 http://서버ip:80
 ```
 
-### 9. github action
+### 9. github action  [🖇️](https://docs.github.com/ko/actions/writing-workflows/quickstart) 
 
 - CI/CD를 위한 github 서비스. github에 push 하면 NCP 서버에 자동 배포되도록 설정
 - workflow라고도 함. 트리거 이벤트가 발생하면 시작되는 일련의 동작이며 yaml 파일로 저장
 - workflow는 job들로 나눠지며 각 job은 일련의 스텝을 수행
 
-<img src="./images/github_action.png" width="800">
-
-로컬에서 ssh 키생성
-
-```sh
-# 키생성
-C:\Users\user> ssh-keygen -t rsa -b 4096 -C "github-action"
-
-C:\Users\user> cd .ssh
-C:\Users\user\.ssh> dir
-
- Directory of C:\Users\user\.ssh
-
-2025-05-16  오전 07:54             3,381 id_rsa
-2025-05-16  오전 07:54               740 id_rsa.pub
-
-# 메모장에서 공캐기 파일 내용 복사
-C:\Users\user\.ssh>notepad id_rsa.pub
-```
-
-서버에 공개키 등록
-
-```sh
-ssh ubuntu@your-server-ip
-mkdir -p ~/.ssh
-sudo nano ~/.ssh/authorized_keys
-# id_rsa.pub 내용을 추가로 붙여넣기
-```
+<img src="./images/github_action.png" width="900">
 
 GitHub에 Secrets 등록
-GitHub → Settings → Secrets → Actions
 
 ```
 키 이름	  설명
-SSH_HOST	서버 주소 또는 IP
-SSH_USER	보통 ubuntu
-SSH_KEY  	SSH 개인키 (id_rsa) 내용
+SSH_HOST	        서버 IP 주소
+SSH_USER	        ubuntu
+SSH_PRIVATE_KEY  	SSH 개인키 (id_rsa) 내용
 ```
+GitHub → Settings → Secrets and variables → Actions -> New repository secret  
+
+<img src="./images/github_action_02_sccret.png" width="900px"/>
 
 GitHub Actions 워크플로우 설정
 
-.github/workflows/deploy.yml 생성:
+.github/workflows/npm-publish.yml 생성:
 
 ```yaml
 name: Build Vue and Deploy Node App
@@ -463,9 +438,6 @@ on:
     types: [closed]
     branches:
       - main
-  push:
-    branches:
-      - main 
           
 jobs:
   deploy:
@@ -516,6 +488,13 @@ jobs:
           EOF
 
         echo '== build end ==='
+```
+main 브랜치에 push 할때 action 실행  
+
+```sh
+  push:
+    branches:
+      - main 
 ```
 쉘 스크립트 작성
 
@@ -576,4 +555,33 @@ cat << END  > result.txt
 hello
 bye
 END
+```
+
+### ssh 키 생성
+
+로컬에서 ssh 키생성
+
+```sh
+# 키생성
+C:\Users\user> ssh-keygen -t rsa -b 4096 -C "github-action"
+
+C:\Users\user> cd .ssh
+C:\Users\user\.ssh> dir
+
+ Directory of C:\Users\user\.ssh
+
+2025-05-16  오전 07:54             3,381 id_rsa
+2025-05-16  오전 07:54               740 id_rsa.pub
+
+# 메모장에서 공캐기 파일 내용 복사
+C:\Users\user\.ssh>notepad id_rsa.pub
+```
+
+서버에 공개키 등록
+
+```sh
+ssh ubuntu@your-server-ip
+mkdir -p ~/.ssh
+sudo nano ~/.ssh/authorized_keys
+# id_rsa.pub 내용을 추가로 붙여넣기
 ```
