@@ -28,11 +28,11 @@ jobs:
         npm ci
         npm run build
 
-#    - name: Copy dist to backend/public
-#      run: |
-#        rm -rf backend/public
-#        mkdir -p backend/public
-#        cp -r frontapp/dist/* backend/public/
+    - name: Copy dist to backend/public
+      run: |
+        rm -rf backend/public
+        mkdir -p backend/public
+        cp -r frontapp/dist/* backend/public/
 
     - name: Setup SSH key
       run: |
