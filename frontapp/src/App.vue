@@ -3,7 +3,7 @@
     <router-link to="/">Home</router-link> |
     <router-link to="/about">About</router-link>
   </nav>
-  test~~~~~ dceploy
+  test 수정합니다...
   <hr>
   <router-view/>
 </template>
