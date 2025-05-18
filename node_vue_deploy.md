@@ -166,7 +166,7 @@ sudo apt-get update
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
 
 # nvm 설치 확인
-nvm --verion
+nvm --version
 
 # nvm 명령어로 node와 npm을 설치
 nvm install 22.14.0
@@ -371,7 +371,7 @@ $ sudo systemctl start nginx        # sudo service nginx start
 Nginx proxy 서버 설정
 
 ```sh
-$ sudo vi /etc/nginx/sites-availabled/default
+$ sudo vi /etc/nginx/sites-available/default
 ```
 
 ```shell
@@ -384,7 +384,7 @@ server {
 
         location / {
                     proxy_pass http://127.0.0.1:3000;
-  }
+       }
 }
 ```
 
@@ -439,6 +439,8 @@ C:\Users\user\.ssh>notepad id_rsa.pub
 sudo vi ~/.ssh/authorized_keys
 # id_rsa.pub(공개키) 내용을 추가로 붙여넣기  o -> shift+insert -> :wq
 ```
+
+<<<<<<< HEAD
 
 ##### GitHub에 Secrets 등록
 
@@ -552,3 +554,7 @@ export HISTTIMEFORMAT="%F %T "
       pm2 restart app || pm2 start backend/app.js --name "app"
       pm2 save
 ```
+
+=======
+
+> > > > > > > a5ef25a6f9d55eedb0fafa2f599ed8c51c0d3ad4

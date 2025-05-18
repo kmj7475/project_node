@@ -1,10 +1,16 @@
 name: Build Vue and Deploy Node App
 
-on:
-  push:
-    branches:
-      - main 
+#on:
+#  push:
+#    branches:
+#      - main 
 
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+          
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -24,23 +30,28 @@ jobs:
 
     - name: Build Vue app
       working-directory: frontapp
-      run: npm run build
+      run: |
+        npm ci
+        npm run build
 
-#    - name: Copy dist to backend/public
-#      run: |
-#        rm -rf backend/public
-#        mkdir -p backend/public
-#        cp -r frontapp/dist/* backend/public/
+    - name: Setup SSH key
+      run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
+    # 서버에 접속하여 배포 실행          
     - name: SSH into server and deploy
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
-        key: ${{ secrets.SSH_KEY }}
-        script: |
-          cd /home/ubuntu/project
-          git pull origin main
-          npm install --prefix backend
-          pm2 restart app || pm2 start backend/app.js --name "app"
-          pm2 save
+      run: |
+        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/project/backend/public/      
+        ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/project
+            git pull origin main
+            cd backend
+            npm ci
+            pm2 restart app || pm2 start app.js --name "app"
+            pm2 save
+          EOF
+
+        echo '== build end ==='
+        
