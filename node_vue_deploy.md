@@ -377,7 +377,7 @@ $ sudo vi /etc/nginx/sites-availabled/default
 ```shell
 server {
         listen 80;
-        listen [::]:80;
+      #  listen [::]:80;
 
         access_log /var/log/nginx/reverse-access.log;
         error_log /var/log/nginx/reverse-error.log;
@@ -401,15 +401,19 @@ $ sudo systemctl status nginx
 http://서버ip:80
 ```
 
-### 9. github action
+### 9. [github action](https://docs.github.com/ko/actions)
 
 - CI/CD를 위한 github 서비스. github에 push 하면 NCP 서버에 자동 배포되도록 설정
 - workflow라고도 함. 트리거 이벤트가 발생하면 시작되는 일련의 동작이며 yaml 파일로 저장
 - workflow는 job들로 나눠지며 각 job은 일련의 스텝을 수행
+- [quickstart](https://docs.github.com/ko/actions/writing-workflows/quickstart) 따라하기
 
-<img src="./images/github_action.png" width="800">
+<img src="./images/github_action2.png" width="800">
+<font size="1px"><a href="https://www.flaticon.com/kr/free-icons/vm" title="vm 아이콘">Vm 아이콘 제작자: Vectors Tank - Flaticon</a></font>
 
-로컬에서 ssh 키생성
+#### 1) github에서 ssh 접속 시 사용할 키들 생성하여 등록
+
+##### 로컬에서 ssh 키생성
 
 ```sh
 # 키생성
@@ -423,32 +427,37 @@ C:\Users\user\.ssh> dir
 2025-05-16  오전 07:54             3,381 id_rsa
 2025-05-16  오전 07:54               740 id_rsa.pub
 
-# 메모장에서 공캐기 파일 내용 복사
+# 메모장에서 공캐키 파일 내용 복사
 C:\Users\user\.ssh>notepad id_rsa.pub
 ```
 
-서버에 공개키 등록
+##### 서버에 공개키 등록
 
 ```sh
-ssh ubuntu@your-server-ip
-mkdir -p ~/.ssh
-sudo nano ~/.ssh/authorized_keys
-# id_rsa.pub 내용을 추가로 붙여넣기
+#ssh ubuntu@your-server-ip
+#mkdir -p ~/.ssh
+sudo vi ~/.ssh/authorized_keys
+# id_rsa.pub(공개키) 내용을 추가로 붙여넣기  o -> shift+insert -> :wq
 ```
 
-GitHub에 Secrets 등록
+##### GitHub에 Secrets 등록
+
 GitHub → Settings → Secrets → Actions
 
-```
-키 이름	  설명
-SSH_HOST	서버 주소 또는 IP
-SSH_USER	보통 ubuntu
-SSH_KEY  	SSH 개인키 (id_rsa) 내용
-```
+| 키 이름         | 설명                     |
+| :-------------- | :----------------------- |
+| SSH_HOST        | 서버 주소 또는 IP        |
+| SSH_USER        | ubuntu                   |
+| SSH_PRIVATE_KEY | SSH 개인키 (id_rsa) 내용 |
 
 GitHub Actions 워크플로우 설정
 
-.github/workflows/deploy.yml 생성:
+#### 2) .github/workflows/deploy.yml 생성:
+
+- workflow : github action에서 작업할 프로세스를 정의. (test, build,package, deploy)
+- on(event) : workflow에서 감지하는 이벤트(push, pr)
+- jobs : workflow는 하나 이상의 job으로 구성되며 병렬로 작업이 진행
+- steps : 하나의 job은 여러 step으로 구성되며 작업순서를 지정. users는 미리 만들어진 명령어를 실행하는 것이고 run은 명령어 실행
 
 ```yaml
 name: Build Vue and Deploy Node App
@@ -479,24 +488,22 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      #    - name: Copy dist to backend/public
-      #      run: |
-      #        rm -rf backend/public
-      #        mkdir -p backend/public
-      #        cp -r frontend/dist/* backend/public/
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: SSH into server and deploy
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /home/ubuntu/project
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+            cd ~/project
             git pull origin main
             npm install --prefix backend
-            pm2 restart app || pm2 start backend/app.js --name "app"
+            pm2 restart backend || pm2 start backend/index.js --name "app"
             pm2 save
+          EOF
 ```
 
 ## 리눅스 명령어
@@ -521,4 +528,27 @@ $ vi /etc/profile
 ```
 # History Command Execute Time
 export HISTTIMEFORMAT="%F %T "
+```
+
+### github action 예시
+
+```yml
+- name: Copy dist to backend/public
+  run: |
+    rm -rf backend/public
+    mkdir -p backend/public
+    cp -r frontend/dist/* backend/public/
+
+- name: SSH into server and deploy
+  uses: appleboy/ssh-action@v1.0.3
+  with:
+    host: ${{ secrets.SSH_HOST }}
+    username: ${{ secrets.SSH_USER }}
+    key: ${{ secrets.SSH_KEY }}
+    script: |
+      cd /home/ubuntu/project
+      git pull origin main
+      npm install --prefix backend
+      pm2 restart app || pm2 start backend/app.js --name "app"
+      pm2 save
 ```
