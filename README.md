@@ -556,5 +556,14 @@ export HISTTIMEFORMAT="%F %T "
 ```
 
 =======
+error : bash: line x: node: command not found  
+
+```
+sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/node" "/usr/local/bin/node"
+sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/npm" "/usr/local/bin/npm"
+sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/pm2" "/usr/local/bin/pm2"
+sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/yarn" "/usr/local/bin/yarn"
+sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/npx" "/usr/local/bin/npx"
+```
 
 > > > > > > > a5ef25a6f9d55eedb0fafa2f599ed8c51c0d3ad4
