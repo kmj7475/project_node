@@ -524,7 +524,7 @@ jobs:
 
       - name: SSH into server and deploy
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+          ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
             cd ~/project
             git pull origin main
             npm install --prefix backend
