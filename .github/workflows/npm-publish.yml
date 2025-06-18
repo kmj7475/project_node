@@ -1,15 +1,15 @@
 name: Build Vue and Deploy Node App
 
-#on:
-#  push:
-#    branches:
-#      - main 
-
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
-      - main
+      - main 
+
+#on:
+#  pull_request:
+#    types: [closed]
+#    branches:
+#      - main
           
 jobs:
   deploy:
@@ -43,14 +43,14 @@ jobs:
     # 서버에 접속하여 배포 실행          
     - name: SSH into server and deploy
       run: |
-        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/project/backend/public/      
+        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/${{ secrets.SSH_USER }}/deploy_node/backend/public/
         ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd ~/project
+            cd ~/deploy_node
             git pull origin main
             cd backend
             npm ci
-            pm2 restart app || pm2 start app.js --name "app"
-            pm2 save
+            export PATH=$PATH:/root/.nvm/versions/node/v22.14.0 pm2 restart app || pm2 start app.js --name "app" > pm2Logs.log
+            export PATH=$PATH:/root/.nvm/versions/node/v22.14.0 pm2 save > pm2Save.log
           EOF
 
         echo '== build end ==='

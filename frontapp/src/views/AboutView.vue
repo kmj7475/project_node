@@ -4,17 +4,23 @@
     <div>{{ board.title }}</div>
   </div>
 </template>
-<script>
-export default {
-  data() {
-    return {
-      board: {},
-    };
-  },
-  created() {
-    fetch("/api/board")
-      .then((res) => res.json())
-      .then((res) => (this.board = res));
-  },
-};
+<script setup>
+import {ref, onBeforeMount} from 'vue'
+const board = ref({});
+
+onBeforeMount(()=>{
+  fetch(`/api/board`)
+  .then(res => res.json())
+  .then(data => board.value = data);
+});
+
 </script>
+<style>
+@media (min-width: 1024px) {
+  .about {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+}
+</style>

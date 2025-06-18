@@ -1,7 +1,5 @@
 https://velog.io/@new_wisdom/AWS-EC2%EC%97%90-Node.jsExpress-pm2-nginx-배포하기#-ubuntu-기본-세팅--nodejs-pm2-nginx-설치
 
-54.180.202.222
-
 ## vue + node 배포
 
 ### 학습목표
@@ -26,43 +24,53 @@ https://velog.io/@new_wisdom/AWS-EC2%EC%97%90-Node.jsExpress-pm2-nginx-배포하
 
 node express를 실행했을 때 Vue로 만든 웹프론트도 함께 실행되도록 함.
 
-#### frontend/vue.config.js 파일 수정
+#### frontend/vite.config.js 파일 수정
 
 ```javascript
-const { defineConfig } = require("@vue/cli-service");
-const path = require("path");
+import { fileURLToPath, URL } from 'node:url'
 
-const server = "http://localhost:3000";
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import path from 'node:path';
 
-module.exports = defineConfig({
-  transpileDependencies: true,
-  outputDir: path.resolve("../backend/public"),
-  // 개발용 임시 서버
-  devServer: {
-    // Vue.js 실행 시 적용 PORT 변경
-    port: 8099,
-    // CORS(Cross Origin Resource Sharing) => proxy setting
-    proxy: {
-      // 해당 문자열로 시작하는 통신에 적용하는 설정
-      "^/api": {
-        // 변경할 Origin
-        target: server,
-        // Origin 변경 : http://localhost:8099 -> http://localhost:3000
-        changeOrigin: true,
-        // URL 중 일부분을 다시 작성 : /api/books -> /books
-        pathRewrite: { "^/api": "/" },
-        // websocket 설정 비활성화
-        ws: false,
-      },
+const backServer = `http://localhost:3000`;
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueDevTools(),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
-});
+   // 개발용 임시 서버
+   server: {
+    // Vue.js 실행 시 적용 PORT 변경
+    port : 8099,
+     // CORS(Cross Origin Resource Sharing) => proxy setting
+    proxy: {
+      '^/api': {
+        target: backServer,
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
+  build : {
+   outDir :  '../backend/public'
+  }
+})
 ```
 
 배포할 위치 설정
 
 ```javascript
-outputDir: path.resolve("../backend/public"),
+  build : {
+   outDir :  '../backend/public'
+  }
 ```
 
 vue build
@@ -81,32 +89,41 @@ Node만을 실행했을 때 Vue도 함께 실행되므로 Vue에서 만든 front
 #### backend/app.js 수정
 
 ```javascript
+require('dotenv').config({path : './database/dbConfig.env'});
 const express = require("express");
-const path = require("path");
 const app = express();
 const port = 3000;
+
+console.log(process.env.DB_NAME);
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`);
+});
 
 app.get("/hello", (req, res) => {
   console.log(req.url);
   res.send("Hello World!");
 });
 
+
 app.get("/api/board", (req, res) => {
-  res.send({ title: "Hello World!" });
+  res.send({ title: "노드 api 서버 update!!!!" });
 });
 
-//node의 router와 vue의 router를 연결
+// vue.js build 이후
+
+const path = require('path');
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+
 app.get("/", function (req, res, next) {
   res.sendFile(path.join(__dirname, "./public", "index.html"));
 });
+
 
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, "./public", "index.html"));
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
 ```
 
 '/' endpoint에 vue의 index.html을 라우팅함.
@@ -143,10 +160,10 @@ http://localhost:3000
 
 ```sh
 # git clone
-git clone https://github.com/cyannara/project.git
+git clone https://github.com/kmj7475/project_node.git
 
 # 노드 서버 패키지 설치
-cd project/backend
+cd project_node/backend
 npm install
 
 ```
@@ -164,12 +181,19 @@ sudo apt-get update
 
 # nvm 설치
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.35.1/install.sh | bash
+source ~/.bashrc
 
 # nvm 설치 확인
 nvm --version
 
 # nvm 명령어로 node와 npm을 설치
 nvm install 22.14.0
+
+# 외부 terminal 에서 node와 npm을 사용할 수 있도록 추가로 심볼릭 링크(Symbolic link) 설정
+# 심볼릭 링크(Symbolic link) : 윈도우의 바로카기
+sudo ln -s "$NVM_DIR/versions/node/v22.14.0/bin/node" "/usr/local/bin/node"
+sudo ln -s "$NVM_DIR/versions/node/v22.14.0/bin/npm" "/usr/local/bin/npm"
+sudo ln -s "$NVM_DIR/versions/node/v22.14.0/bin/pm2" "/usr/local/bin/pm2"
 ```
 
 (선택) node 버전을 변경하려면
@@ -211,7 +235,7 @@ $ node app.js > ~/server.log 2>&1 &
 브라우저로 서버 연결 확인
 
 ```sh
-http://54.180.202.222:3000
+http://서버ip:3000
 ```
 
 ## 백그라운드 실행
@@ -451,6 +475,7 @@ GitHub → Settings → Secrets → Actions
 | SSH_HOST        | 서버 주소 또는 IP        |
 | SSH_USER        | ubuntu                   |
 | SSH_PRIVATE_KEY | SSH 개인키 (id_rsa) 내용 |
+| SSH_PORT        | SSH 설정 Port           |
 
 GitHub Actions 워크플로우 설정
 
@@ -556,14 +581,4 @@ export HISTTIMEFORMAT="%F %T "
 ```
 
 =======
-error : bash: line x: node: command not found  
-
-```
-sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/node" "/usr/local/bin/node"
-sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/npm" "/usr/local/bin/npm"
-sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/pm2" "/usr/local/bin/pm2"
-sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/yarn" "/usr/local/bin/yarn"
-sudo ln -s "$NVM_DIR/versions/node/$(node 버전)/bin/npx" "/usr/local/bin/npx"
-```
-
 > > > > > > > a5ef25a6f9d55eedb0fafa2f599ed8c51c0d3ad4
