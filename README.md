@@ -473,7 +473,7 @@ GitHub → Settings → Secrets → Actions
 | 키 이름         | 설명                     |
 | :-------------- | :----------------------- |
 | SSH_HOST        | 서버 주소 또는 IP        |
-| SSH_USER        | ubuntu                   |
+| SSH_USER        | root                     |
 | SSH_PRIVATE_KEY | SSH 개인키 (id_rsa) 내용 |
 | SSH_PORT        | SSH 설정 Port           |
 
