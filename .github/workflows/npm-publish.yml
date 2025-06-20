@@ -16,14 +16,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # 임시 서버인 ubuntu-latest 에 현재 git repository 정보 반영
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # 임시 서버인 ubuntu-latest 에 node를 설치
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '20'
 
+    # 임시 서버인 ubuntu-latest 에 frontapp 폴더 안에서 지정한 명령어 수행
     - name: Install frontapp dependencies
       working-directory: frontapp
       run: npm ci
@@ -33,7 +36,8 @@ jobs:
       run: |
         npm ci
         npm run build
-
+        
+    # github actions 에 저장된 private key를 ubuntu에 복사
     - name: Setup SSH key
       run: |
           mkdir -p ~/.ssh
@@ -43,9 +47,9 @@ jobs:
     # 서버에 접속하여 배포 실행          
     - name: SSH into server and deploy
       run: |
-        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/${{ secrets.SSH_USER }}/deploy_node/backend/public/
+        scp   -r -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} frontapp/dist/* ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/${{ secrets.SSH_USER }}/project/backend/public/
         ssh -vvv -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }}  ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-            cd ~/deploy_node
+            cd ~/project
             git pull origin main
             cd backend
             npm ci            
