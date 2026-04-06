@@ -9,10 +9,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3.3.0
-
-      - name: execute remote ssh
-        uses: appleboy/ssh-action@master
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
